@@ -16,8 +16,11 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
   
 // Create chat bot
 var connector = new builder.ChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword: process.env.MICROSOFT_APP_PASSWORD
+ //   appId: process.env.MICROSOFT_APP_ID,
+ //   appPassword: process.env.MICROSOFT_APP_PASSWORD
+
+    appId: 'c028bc57-546b-44b0-953a-2e25e5f5973e',
+    appPassword: 'fkieP7SZPR9se92J2ktyS37'
 });
 var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
@@ -524,7 +527,7 @@ var arrCat = [];
 										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
 									])
 									.buttons([
-										builder.CardAction.dialogAction(session, "businesslist", "41", "View Businesses")
+										builder.CardAction.dialogAction(session, "businesslist", arrCat[a].id, "View Businesses")
 									]);
 									cards.push(card);
 
@@ -537,7 +540,7 @@ var arrCat = [];
 									])
 									.buttons([
 										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
-                                        builder.CardAction.dialogAction(session, "search", "5", "Next 5 >")
+                                        builder.CardAction.dialogAction(session, "searchCat", "5", "Next 5 >")
 								//		
 									]);
 									cards.push(card);
@@ -681,8 +684,8 @@ bot.dialog('/businesslist', [
 	function (session, args)      //WeatherUnderground API 
     {
 
-    var subCatID = 41;	
-	//var subCatID = args.data;
+    //var subCatID = 41;	
+	var subCatID = args.data;
 	session.userData.subcatid = subCatID;
 		
         try 
@@ -691,8 +694,10 @@ bot.dialog('/businesslist', [
 // Begin HTTP Code
 
 var arrBiz = []; 
-//session.userData.bizArray = arr;
-console.log("The location is" + session.userData.location); 
+session.userData.bizArray = arrBiz;
+console.log("The location is " + session.userData.location); 
+console.log("The Session Sub Cat ID is " + session.userData.subcatid); 
+console.log("The Subcatid is " + subCatID); 
 
                 http.get("http://www.blocally.com/json/botNearbyBusinessList.php?address="+ session.userData.location +"&sub_cat="+ session.userData.subcatid +"&radius=99", function (response) {
 			//http.get("http://www.blocally.com/json/nearbyBusinessesBySubCat3.php?address=" + session.userData.cityName +"&sub_cat=277&radius=99", function (response) {
@@ -701,7 +706,9 @@ console.log("The location is" + session.userData.location);
                     response.on('data', function (chunk) { d += chunk; })
                     response.on('end', function () {
                         var e = JSON.parse(d);
-						for (i = 0; i < e.length; i++) {  
+						for (i = 0; i < e.listings.length; i++) { 
+                        //var g = JSON.parse(f);
+						//for (h = 0; h < g.listings.length; h++) {  
 							console.log(i + 1 + ":" + e.listings[i].title); 
                             console.log("This is a test "); 
                         //    console.log("location is " + session.userData.location);   
@@ -711,6 +718,7 @@ console.log("The location is" + session.userData.location);
 								"name": e.listings[i].title,    
                                 "address": e.listings[i].listing_address1,
                                 "city": e.listings[i].location_text_1,
+                                "state": e.listings[i].StateAbrev,
                                 "description": e.listings[i].description_short
 							});  
 						} // ends for loop
@@ -727,18 +735,18 @@ console.log("The location is" + session.userData.location);
 					
 						    
         					var card = new builder.HeroCard(session)
-							//		.title(""+ arrBiz[x].name +"")
-							//		.text("" + arrBiz[x].address +"")
-//									.images([
-//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
-//       +arr[a].lat+","+arr[a].lon+"&zoom=14&size=400x300&sensor=false")
-//									])
+									.title(""+ arrBiz[x].name +"")
+									.text("" + arrBiz[x].address +" " + arrBiz[x].city +" " + arrBiz[x].state +"")
+									.images([
+										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
+       +arrBiz[x].lat+","+arrBiz[x].lon+"&zoom=14&size=400x300&sensor=false")
+									])
                                     .images([
-									//	 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+arrBiz[x].lat+","+arrBiz[x].lon+"")
-                                        builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C")
+										 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+arrBiz[x].lat+","+arrBiz[x].lon+"")
+                                    //    builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C")
 									])
 									.buttons([
-										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id=20", "More Details"),
+										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id="+arrBiz[x].id, "More Details"),
 										builder.CardAction.imBack(session, "select:102", "Track Purchase")
 									]);
 									cards.push(card);
@@ -806,9 +814,10 @@ bot.dialog('/search', [
          // new for loop test
 						  // new for loop test
     var num = args.data;
-	console.log("name 0 is " + session.userData.bizArray[0].name); 
+	//console.log("name 0 is " + session.userData.bizArray[0].name); 
     console.log("last number used " + num);
-    session.userData.count = parseInt(num)+5;
+    //session.userData.count = parseInt(num)+5;
+    var count = parseInt(num)+5;
     var bizAmount = session.userData.bizArray.length;
     var howManyLeft = parseInt(bizAmount) - parseInt(num);
      // new for loop test
@@ -821,7 +830,7 @@ bot.dialog('/search', [
 						 var a;
 						 var cards = [];
 						 
-						 for (a = num; a < session.userData.count;) {					
+						 for (a = num; a < count;) {					
 						
 						
 						    
@@ -841,7 +850,7 @@ bot.dialog('/search', [
 									]);
 									cards.push(card);
 
-                            if (a == (parseInt(session.userData.count)-1)) {
+                            if (a == (parseInt(count)-1)) {
                             var card = new builder.HeroCard(session)
 									.title("Next 5 Businesses")
 								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
@@ -851,7 +860,7 @@ bot.dialog('/search', [
 
                                     .buttons([
 										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
-                                        builder.CardAction.dialogAction(session, "search", "" + session.userData.count +"", "" + nextFiveLabel +"")
+                                        builder.CardAction.dialogAction(session, "search", howManyLeft, "" + nextFiveLabel +"")
 								//		
 									]);
 									cards.push(card);
