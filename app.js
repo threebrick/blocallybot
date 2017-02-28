@@ -23,7 +23,7 @@ var connector = new builder.ChatConnector({
     appPassword: 'fkieP7SZPR9se92J2ktyS37'
 });
 var bot = new builder.UniversalBot(connector);
-server.post('/api/messages', connector.listen());
+server.post('https://blocallybot.blocally.com/api/messages', connector.listen());
 
 
 
