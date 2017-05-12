@@ -16,15 +16,15 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
   
 // Create chat bot
 var connector = new builder.ChatConnector({
- //   appId: process.env.MICROSOFT_APP_ID,
- //   appPassword: process.env.MICROSOFT_APP_PASSWORD
+   // appId: process.env.MICROSOFT_APP_ID,
+   // appPassword: process.env.MICROSOFT_APP_PASSWORD
 
     appId: 'c028bc57-546b-44b0-953a-2e25e5f5973e',
     appPassword: 'fkieP7SZPR9se92J2ktyS37'
 });
 var bot = new builder.UniversalBot(connector);
-server.post('https://blocallybot.blocally.com/api/messages', connector.listen());
-
+server.post('https://frozen-ravine-18027.herokuapp.com/api/messages', connector.listen());
+//server.post('/api/messages', connector.listen());
 
 
 //=========================================================
