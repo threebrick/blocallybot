@@ -1,8 +1,47 @@
+/*-----------------------------------------------------------------------------
+This Bot uses the Bot Connector Service but is designed to showcase whats 
+possible on Facebook using the framework. The demo shows how to create a looping 
+menu how send things like Pictures, Bubbles, Receipts, and use Carousels. It also
+shows all of the prompts supported by Bot Builder and how to receive uploaded
+photos, videos, and location.
+
+# RUN THE BOT:
+
+    You can run the bot locally using the Bot Framework Emulator but for the best
+    experience you should register a new bot on Facebook and bind it to the demo 
+    bot. You can run the bot locally using ngrok found at https://ngrok.com/.
+
+    * Install and run ngrok in a console window using "ngrok http 3978".
+    * Create a bot on https://dev.botframework.com and follow the steps to setup
+      a Facebook channel. The Facebook channel config page will walk you through 
+      creating a Facebook page & app for your bot.
+    * For the endpoint you setup on dev.botframework.com, copy the https link 
+      ngrok setup and set "<ngrok link>/api/messages" as your bots endpoint.
+    * Next you need to configure your bots MICROSOFT_APP_ID, and
+      MICROSOFT_APP_PASSWORD environment variables. If you're running VSCode you 
+      can add these variables to your the bots launch.json file. If you're not 
+      using VSCode you'll need to setup these variables in a console window.
+      - MICROSOFT_APP_ID: This is the App ID assigned when you created your bot.
+      - MICROSOFT_APP_PASSWORD: This was also assigned when you created your bot.
+    * Install the bots persistent menus following the instructions outlined in the
+      section below.
+    * To run the bot you can launch it from VSCode or run "node app.js" from a 
+      console window. 
+
+# INSTALL PERSISTENT MENUS
+
+    Facebook supports persistent menus which Bot Builder lets you bind to global 
+    actions. These menus must be installed using the page access token assigned 
+    when you setup your bot. You can easily install the menus included with the 
+    example by running the cURL command below:
+
+        curl -X POST -H "Content-Type: application/json" -d @persistent-menu.json 
+        "https://graph.facebook.com/v2.6/me/thread_settings?access_token=PAGE_ACCESS_TOKEN"
+    
+-----------------------------------------------------------------------------*/
+
 var restify = require('restify');
 var builder = require('botbuilder');
-
-var http = require('http');
-
 
 //=========================================================
 // Bot Setup
@@ -35,56 +74,34 @@ bot.use(builder.Middleware.dialogVersion({ version: 1.0, resetCommand: /^reset/i
 
 bot.endConversationAction('goodbye', 'Goodbye :)', { matches: /^goodbye/i });
 bot.beginDialogAction('help', '/help', { matches: /^help/i });
-bot.beginDialogAction('menu', '/menu', { matches: /^menu/i });
 
 //=========================================================
 // Bots Dialogs
 //=========================================================
+
 bot.dialog('/', [
     function (session) {
         // Send a greeting and show help.
         var card = new builder.HeroCard(session)
-            .title("Blocally Business Bot")
-            .text("Connecting Businesses and Customers Socially.")
+            .title("Microsoft Bot Framework")
+            .text("Your bots - wherever your users are talking.")
             .images([
                  builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
             ]);
         var msg = new builder.Message(session).attachments([card]);
         session.send(msg);
-        session.send("Hi... I'm the Blocally Business Bot. I can help you find businesses in your local area.");
+        session.send("Hi... I'm the Microsoft Bot Framework demo bot for Facebook. I can show you everything you can use our Bot Builder SDK to do on Facebook.");
         session.beginDialog('/help');
     },
     function (session, results) {
         // Display menu
-        session.beginDialog('/start');
+        session.beginDialog('/menu');
     },
     function (session, results) {
         // Always say goodbye
         session.send("Ok... See you later!");
     }
 ]);
-
-bot.dialog('/start', new builder.IntentDialog()   
-        //root ‘/’ dialog responds to any message.
-.matches('^businesses', builder.DialogAction.beginDialog('/businesses'))
-        // The CommandDialog lets you add a RegEx that, when matched, 
-        //will invoke a Dialog Handler.
-.onDefault([
-    //The first step of the root ‘/’ dialog checks to see if we know 
-    //the user's location, and if not, it redirects them to the ‘/weather’ dialog
-    //using a call to beginDialog(). 
-    function (session, args, next) 
-    {
-        if (!session.userData.location) { session.beginDialog('/businesses'); }
-        else { next(); }    
-                //You can persist data for a user globally by assigning values 
-                //to the session.userData object, like we've done here for location.
-    },
-    function (session, results) 
-    {
-        session.send('Hello from %s', session.userData.location + "!");
-    }
-])); //End of bot.add() root ‘/’ dialog and .onDefault();
 
 bot.dialog('/menu', [
     function (session) {
@@ -384,492 +401,9 @@ bot.dialog('/actions', [
 ]);
 
 // Create a dialog and bind it to a global action
-bot.dialog('/businesses', [
-    function (session, args, next) 
-    {
-//        if (session.userData.location) 
-//        { 
-//            builder.Prompts.text(session, "Is that a new city? Hang on, let me go check..."); 
-//        } 
-//        else 
-//        {
-            builder.Prompts.text(session, "Hello. I can tell you about any city " +
-            "if you type it like 'businesses Atlanta, GA'.");
-//        }
-        //check to see if user is requesting a new location.
-        if (session.userData.location) {
-             next(); 
-            }
-    },
-    
-    
-        
-    function (session, results) {
-
-        // capture location
-
-        //Try to read in a string of "weather City, ST"
-            var txt = session.message.text;
-                            //convert "Weather" to "weather", then delete it
-            txt = txt.toLowerCase().replace('businesses ', '');
-                            //split City, State by ‘,’ and replace spaces with _ 
-            var city = txt.split(',')[0].trim().replace(' ', '_');
-                            //assign state variable to the back half of the string 
-            var state = txt.split(',')[1].trim();
-                 
-                    //log City, ST to the console for debugging 
-            console.log(city + ', ' + state);
-                            //set user's global location to City, ST 
-            
-                            //set user's global location to City, ST 
-            session.userData.location = (city + ', ' + state.toUpperCase());
-            session.userData.cityName = (city);
-
-        // End capture location
-
-
-        var style = builder.ListStyle.list;
-        builder.Prompts.choice(session, "Select a category.", "Arts & Entertainment|Beauty & Personal Care|Business & Professional Services|Community & Education|Financial|Health & Medicine|Restaurants", { listStyle: style });
-    },
-    function (session, results) {
-
-        var txt2 = results.response.entity;
-        console.log(txt2);
-		session.userData.category = txt2;
-        var path;
-		var catNum;
-		
-		if (txt2 == "Arts & Entertainment") {
-			catNum = 2;
-            path = "arts-entertainment";
-
-		} else if (txt2 == "Beauty & Personal Care") {
-			catNum = 40;
-            path = "beauty-personal-care";
-
-		} else if (txt2 == "Business & Professional Services") {
-			catNum = 54;
-            path = "business-professional-services";
-
-		} else if (txt2 == "Community & Education") {
-			catNum = 276;
-            path = "community-education";
-
-		} else if (txt2 == "Financial") {
-			catNum = 161;
-            path = "financial";
-
-		} else if (txt2 == "Health & Medicine") {
-			catNum = 240;
-            path = "health-medicine";
-
-		} else if (txt2 == "Restaurants") {
-			catNum = 279;
-            path = "restaurants";
-		}
-		
-		console.log(catNum);
-        session.send("You chose '%s'", results.response.entity);
-		//session.send("Your category number is '%s'", catNum);
-        //builder.Prompts.confirm(session, "Simple yes/no questions are possible. Answer yes or no now.");
-
-// Find Subcategories
-
-        try 
-        {           
-            
-// Begin HTTP Code
-
-var arrCat = []; 
-//session.userData.bizArray = arr;
-                http.get("http://www.blocally.com/json/getNearbySubCategoriesURL.php?friendly_url_path=" + path, function (response) {
-			//http.get("http://www.blocally.com/json/nearbyBusinessesBySubCat3.php?address=" + session.userData.cityName +"&sub_cat=277&radius=99", function (response) {
-                    var d = '';
-					var i;
-                    response.on('data', function (chunk) { d += chunk; })
-                    response.on('end', function () {
-                        var e = JSON.parse(d);
-						for (i = 0; i < e.data.length; i++) {  
-							console.log(i + 1 + ":" + e.data[i].title); 
-                        //    console.log("city is " + city); 
-                        //    console.log("location is " + session.userData.location);   
-                        //    console.log("cityName is " + session.userData.cityName);
-							arrCat.push({ 
-								"id": e.data[i].id, 
-								"name": e.data[i].title,   
-								"url": e.data[i].friendly_url_path  
-								  
-							});  
-						} // ends for loop
-						
-
-						// added new code		
-						 
-						 // new for loop test
-						 var a;
-						 var cards = [];
-						 
-						 for (a = 0; a < 5;) {					
-						
-					
-						    
-        					var card = new builder.HeroCard(session)
-									.title(""+ arrCat[a].name +"")
-									.text("" + arrCat[a].url +"")
-//									.images([
-//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
-//       +arr[a].lat+","+arr[a].lon+"&zoom=14&size=400x300&sensor=false")
-//									])
-                                    .images([
-										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
-									])
-									.buttons([
-										builder.CardAction.dialogAction(session, "businesslist", "41", "View Businesses")
-									]);
-									cards.push(card);
-
-                            if (a == 4) {
-                            var card = new builder.HeroCard(session)
-									.title("Next 5 Categories")
-								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
-									.images([
-										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
-									])
-									.buttons([
-										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
-                                        builder.CardAction.dialogAction(session, "search", "5", "Next 5 >")
-								//		
-									]);
-									cards.push(card);
-
-                        
-							} // ends if 5 items have been shown
-                            a++;
-		 				 } // ends for loop
-                   
-
-                    
-								session.send("We found the following " + arrCat.length +" categories.  Showing " + a + " out of " + arrCat.length + ".");
-								
-								var msg = new builder.Message(session)
-									.textFormat(builder.TextFormat.xml)
-									.attachmentLayout(builder.AttachmentLayout.carousel)
-									.attachments(cards);
-								session.send(msg);
-								
-						
-        
-	//	session.beginDialog('/menu');	
-                    
-								
-// end new code							
-                    }); // response on end code
-			
-                    
-                   
-        
-                }) // end http code
-
-// End HTTP Code
-
-
-
-        } //End of try 
-        catch (e) 
-        { session.send("Whoops, that didn't match! Try again."); }
-        session.endDialog();
-
-
-
-
-// End Find Subcategories
-
-
-
-
-    },
-    function (session, results) {
-        session.send("You chose '%s'", results.response ? 'yes' : 'no');
-    //    builder.Prompts.time(session, "Prompts.time()\n\nThe framework can recognize a range of times expressed as natural language. Enter a time like 'Monday at 7am' and I'll show you the JSON we return.");
-    }
-    
-]); //End of ‘/weather’ dialog waterfall 
-bot.beginDialogAction('businesses', '/businesses');   // <-- no 'matches' option means this can only be triggered by a button.
-
-
-// Create a dialog and bind it to a global action
-bot.dialog('/subcategories', [
+bot.dialog('/weather', [
     function (session, args) {
-    //    session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
-         // new for loop test
-						  // new for loop test
-    var num = args.data;
-	console.log("name 0 is " + session.userData.bizArray[0].name); 
-    console.log("last number used " + num);
-    session.userData.count = parseInt(num)+5;
-    var bizAmount = session.userData.bizArray.length;
-    var howManyLeft = parseInt(bizAmount) - parseInt(num);
-     // new for loop test
-
-     if (howManyLeft < 5) {
-         nextFiveLabel = "Next " + howManyLeft + " >";
-     } else {
-         nextFiveLabel = "Next 5 >";
-     }
-						 var a;
-						 var cards = [];
-						 
-						 for (a = num; a < session.userData.count;) {					
-						
-						
-						    
-        					var card = new builder.HeroCard(session)
-									.title(""+ session.userData.bizArray[a].name +"")
-									.text("" + session.userData.bizArray[a].address + " in " + session.userData.bizArray[a].city + ", "+ session.userData.bizArray[a].state)
-//									.images([
-//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
-//        +session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"&zoom=14&size=400x300&sensor=false")
-//									])
-                                    .images([
-										 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"")
-									])
-									.buttons([
-										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id="+ session.userData.bizArray[a].id, "More Details"),
-										builder.CardAction.imBack(session, "select:102", "Track Purchase")
-									]);
-									cards.push(card);
-
-                            if (a == (parseInt(session.userData.count)-1)) {
-                            var card = new builder.HeroCard(session)
-									.title("Next 5 Businesses")
-								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
-									.images([
-										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
-									])
-
-                                    .buttons([
-										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
-                                        builder.CardAction.dialogAction(session, "search", "" + session.userData.count +"", "" + nextFiveLabel +"")
-								//		
-									]);
-									cards.push(card);
-
-                        
-							} // ends if 5 items have been shown
-                            a++;
-		 				 } // ends for loop
-
-                          session.send("We found the following " +  session.userData.bizArray.length +" businesses.  Showing " + a + " out of " +  session.userData.bizArray.length + ".");
-								
-								var msg = new builder.Message(session)
-									.textFormat(builder.TextFormat.xml)
-									.attachmentLayout(builder.AttachmentLayout.carousel)
-									.attachments(cards);
-								session.send(msg);
-
-
+        session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
     }
 ]);
-bot.beginDialogAction('subcategories', '/subcategories'); // <-- no 'matches' option means this can only be triggered by a button.
-
-
-
-bot.dialog('/businesslist', [
-	
-	
-	
-	function (session, args)      //WeatherUnderground API 
-    {
-
-    var subCatID = 41;	
-	//var subCatID = args.data;
-	session.userData.subcatid = subCatID;
-		
-        try 
-        {           
-            
-// Begin HTTP Code
-
-var arrBiz = []; 
-//session.userData.bizArray = arr;
-console.log("The location is" + session.userData.location); 
-
-                http.get("http://www.blocally.com/json/botNearbyBusinessList.php?address="+ session.userData.location +"&sub_cat="+ session.userData.subcatid +"&radius=99", function (response) {
-			//http.get("http://www.blocally.com/json/nearbyBusinessesBySubCat3.php?address=" + session.userData.cityName +"&sub_cat=277&radius=99", function (response) {
-                    var d = '';
-					var i;
-                    response.on('data', function (chunk) { d += chunk; })
-                    response.on('end', function () {
-                        var e = JSON.parse(d);
-						for (i = 0; i < e.length; i++) {  
-							console.log(i + 1 + ":" + e.listings[i].title); 
-                            console.log("This is a test "); 
-                        //    console.log("location is " + session.userData.location);   
-                        //    console.log("cityName is " + session.userData.cityName);
-							arrBiz.push({ 
-								"id": e.listings[i].id, 
-								"name": e.listings[i].title,    
-                                "address": e.listings[i].listing_address1,
-                                "city": e.listings[i].location_text_1,
-                                "description": e.listings[i].description_short
-							});  
-						} // ends for loop
-						
-
-						// added new code		
-						 
-						 // new for loop test
-						 var x;
-						 var cards = [];
-						 
-						 for (x = 0; x < 5;) {					
-						
-					
-						    
-        					var card = new builder.HeroCard(session)
-							//		.title(""+ arrBiz[x].name +"")
-							//		.text("" + arrBiz[x].address +"")
-//									.images([
-//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
-//       +arr[a].lat+","+arr[a].lon+"&zoom=14&size=400x300&sensor=false")
-//									])
-                                    .images([
-									//	 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+arrBiz[x].lat+","+arrBiz[x].lon+"")
-                                        builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C")
-									])
-									.buttons([
-										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id=20", "More Details"),
-										builder.CardAction.imBack(session, "select:102", "Track Purchase")
-									]);
-									cards.push(card);
-
-                            if (x == 4) {
-                            var card = new builder.HeroCard(session)
-									.title("Next 5 Businesses")
-								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
-									.images([
-										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
-									])
-									.buttons([
-										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
-                                        builder.CardAction.dialogAction(session, "search", "5", "Next 5 >")
-								//		
-									]);
-									cards.push(card);
-
-                        
-							} // ends if 5 items have been shown
-                            x++;
-		 				 } // ends for loop
-                   
-
-                    
-								session.send("We found the following " + arrBiz.length +" businesses.  Showing " + x + " out of " + arrBiz.length + ".");
-								
-								var msg = new builder.Message(session)
-									.textFormat(builder.TextFormat.xml)
-									.attachmentLayout(builder.AttachmentLayout.carousel)
-									.attachments(cards);
-								session.send(msg);
-								
-						
-        
-	//	session.beginDialog('/menu');	
-                    
-								
-// end new code							
-                    }); // response on end code
-			
-                    
-                   
-        
-                }) // end http code
-
-// End HTTP Code
-
-
-
-        } //End of try 
-        catch (e) 
-        { session.send("Whoops, that didn't match! Try again."); }
-        session.endDialog();
-    } //End of WeatherUnderground API function
-	
-]);
-bot.beginDialogAction('businesslist', '/businesslist'); // <-- no 'matches' option means this can only be triggered by a button.
-
-
-// Create a dialog and bind it to a global action
-bot.dialog('/search', [
-    function (session, args) {
-    //    session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
-         // new for loop test
-						  // new for loop test
-    var num = args.data;
-	console.log("name 0 is " + session.userData.bizArray[0].name); 
-    console.log("last number used " + num);
-    session.userData.count = parseInt(num)+5;
-    var bizAmount = session.userData.bizArray.length;
-    var howManyLeft = parseInt(bizAmount) - parseInt(num);
-     // new for loop test
-
-     if (howManyLeft < 5) {
-         nextFiveLabel = "Next " + howManyLeft + " >";
-     } else {
-         nextFiveLabel = "Next 5 >";
-     }
-						 var a;
-						 var cards = [];
-						 
-						 for (a = num; a < session.userData.count;) {					
-						
-						
-						    
-        					var card = new builder.HeroCard(session)
-									.title(""+ session.userData.bizArray[a].name +"")
-									.text("" + session.userData.bizArray[a].address + " in " + session.userData.bizArray[a].city + ", "+ session.userData.bizArray[a].state)
-//									.images([
-//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
-//        +session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"&zoom=14&size=400x300&sensor=false")
-//									])
-                                    .images([
-										 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"")
-									])
-									.buttons([
-										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id="+ session.userData.bizArray[a].id, "More Details"),
-										builder.CardAction.imBack(session, "select:102", "Track Purchase")
-									]);
-									cards.push(card);
-
-                            if (a == (parseInt(session.userData.count)-1)) {
-                            var card = new builder.HeroCard(session)
-									.title("Next 5 Businesses")
-								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
-									.images([
-										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
-									])
-
-                                    .buttons([
-										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
-                                        builder.CardAction.dialogAction(session, "search", "" + session.userData.count +"", "" + nextFiveLabel +"")
-								//		
-									]);
-									cards.push(card);
-
-                        
-							} // ends if 5 items have been shown
-                            a++;
-		 				 } // ends for loop
-
-                          session.send("We found the following " +  session.userData.bizArray.length +" businesses.  Showing " + a + " out of " +  session.userData.bizArray.length + ".");
-								
-								var msg = new builder.Message(session)
-									.textFormat(builder.TextFormat.xml)
-									.attachmentLayout(builder.AttachmentLayout.carousel)
-									.attachments(cards);
-								session.send(msg);
-
-
-    }
-]);
-bot.beginDialogAction('search', '/search'); // <-- no 'matches' option means this can only be triggered by a button.
+bot.beginDialogAction('weather', '/weather');   // <-- no 'matches' option means this can only be triggered by a button.
