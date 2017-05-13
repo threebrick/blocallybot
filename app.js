@@ -55,11 +55,16 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
   
 // Create chat bot
 var connector = new builder.ChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword: process.env.MICROSOFT_APP_PASSWORD
+   // appId: process.env.MICROSOFT_APP_ID,
+   // appPassword: process.env.MICROSOFT_APP_PASSWORD
+
+    appId: 'c028bc57-546b-44b0-953a-2e25e5f5973e',
+    appPassword: 'fkieP7SZPR9se92J2ktyS37'
 });
 var bot = new builder.UniversalBot(connector);
-server.post('/api/messages', connector.listen());
+server.post('https://frozen-ravine-18027.herokuapp.com/api/messages', connector.listen());
+//server.post('/api/messages', connector.listen());
+
 
 //=========================================================
 // Bots Middleware
@@ -401,9 +406,513 @@ bot.dialog('/actions', [
 ]);
 
 // Create a dialog and bind it to a global action
+<<<<<<< HEAD
 bot.dialog('/weather', [
     function (session, args) {
         session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
     }
 ]);
 bot.beginDialogAction('weather', '/weather');   // <-- no 'matches' option means this can only be triggered by a button.
+=======
+bot.dialog('/businesses', [
+    function (session, args, next) 
+    {
+//        if (session.userData.location) 
+//        { 
+//            builder.Prompts.text(session, "Is that a new city? Hang on, let me go check..."); 
+//        } 
+//        else 
+//        {
+            builder.Prompts.text(session, "Hello. I can tell you about any city " +
+            "if you type it like 'businesses Atlanta, GA'.");
+//        }
+        //check to see if user is requesting a new location.
+        if (session.userData.location) {
+             next(); 
+            }
+    },
+    
+    
+        
+    function (session, results) {
+
+        // capture location
+
+        //Try to read in a string of "weather City, ST"
+            var txt = session.message.text;
+                            //convert "Weather" to "weather", then delete it
+            txt = txt.toLowerCase().replace('businesses ', '');
+                            //split City, State by ‘,’ and replace spaces with _ 
+            var city = txt.split(',')[0].trim().replace(' ', '_');
+                            //assign state variable to the back half of the string 
+            var state = txt.split(',')[1].trim();
+                 
+                    //log City, ST to the console for debugging 
+            console.log(city + ', ' + state);
+                            //set user's global location to City, ST 
+            
+                            //set user's global location to City, ST 
+            session.userData.location = (city + ', ' + state.toUpperCase());
+            session.userData.cityName = (city);
+
+        // End capture location
+
+
+        var style = builder.ListStyle.list;
+        builder.Prompts.choice(session, "Select a category.", "Arts & Entertainment|Beauty & Personal Care|Business & Professional Services|Community & Education|Financial|Health & Medicine|Restaurants", { listStyle: style });
+    },
+    function (session, results) {
+
+        var txt2 = results.response.entity;
+        console.log(txt2);
+		session.userData.category = txt2;
+        var path;
+		var catNum;
+		
+		if (txt2 == "Arts & Entertainment") {
+			catNum = 2;
+            path = "arts-entertainment";
+
+		} else if (txt2 == "Beauty & Personal Care") {
+			catNum = 40;
+            path = "beauty-personal-care";
+
+		} else if (txt2 == "Business & Professional Services") {
+			catNum = 54;
+            path = "business-professional-services";
+
+		} else if (txt2 == "Community & Education") {
+			catNum = 276;
+            path = "community-education";
+
+		} else if (txt2 == "Financial") {
+			catNum = 161;
+            path = "financial";
+
+		} else if (txt2 == "Health & Medicine") {
+			catNum = 240;
+            path = "health-medicine";
+
+		} else if (txt2 == "Restaurants") {
+			catNum = 279;
+            path = "restaurants";
+		}
+		
+		console.log(catNum);
+        session.send("You chose '%s'", results.response.entity);
+		//session.send("Your category number is '%s'", catNum);
+        //builder.Prompts.confirm(session, "Simple yes/no questions are possible. Answer yes or no now.");
+
+// Find Subcategories
+
+        try 
+        {           
+            
+// Begin HTTP Code
+
+var arrCat = []; 
+//session.userData.bizArray = arr;
+                http.get("http://www.blocally.com/json/getNearbySubCategoriesURL.php?friendly_url_path=" + path, function (response) {
+			//http.get("http://www.blocally.com/json/nearbyBusinessesBySubCat3.php?address=" + session.userData.cityName +"&sub_cat=277&radius=99", function (response) {
+                    var d = '';
+					var i;
+                    response.on('data', function (chunk) { d += chunk; })
+                    response.on('end', function () {
+                        var e = JSON.parse(d);
+						for (i = 0; i < e.data.length; i++) {  
+							console.log(i + 1 + ":" + e.data[i].title); 
+                        //    console.log("city is " + city); 
+                        //    console.log("location is " + session.userData.location);   
+                        //    console.log("cityName is " + session.userData.cityName);
+							arrCat.push({ 
+								"id": e.data[i].id, 
+								"name": e.data[i].title,   
+								"url": e.data[i].friendly_url_path  
+								  
+							});  
+						} // ends for loop
+						
+
+						// added new code		
+						 
+						 // new for loop test
+						 var a;
+						 var cards = [];
+						 
+						 for (a = 0; a < 5;) {					
+						
+					
+						    
+        					var card = new builder.HeroCard(session)
+									.title(""+ arrCat[a].name +"")
+									.text("" + arrCat[a].url +"")
+//									.images([
+//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
+//       +arr[a].lat+","+arr[a].lon+"&zoom=14&size=400x300&sensor=false")
+//									])
+                                    .images([
+										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
+									])
+									.buttons([
+										builder.CardAction.dialogAction(session, "businesslist", arrCat[a].id, "View Businesses")
+									]);
+									cards.push(card);
+
+                            if (a == 4) {
+                            var card = new builder.HeroCard(session)
+									.title("Next 5 Categories")
+								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
+									.images([
+										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
+									])
+									.buttons([
+										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
+                                        builder.CardAction.dialogAction(session, "searchCat", "5", "Next 5 >")
+								//		
+									]);
+									cards.push(card);
+
+                        
+							} // ends if 5 items have been shown
+                            a++;
+		 				 } // ends for loop
+                   
+
+                    
+								session.send("We found the following " + arrCat.length +" categories.  Showing " + a + " out of " + arrCat.length + ".");
+								
+								var msg = new builder.Message(session)
+									.textFormat(builder.TextFormat.xml)
+									.attachmentLayout(builder.AttachmentLayout.carousel)
+									.attachments(cards);
+								session.send(msg);
+								
+						
+        
+	//	session.beginDialog('/menu');	
+                    
+								
+// end new code							
+                    }); // response on end code
+			
+                    
+                   
+        
+                }) // end http code
+
+// End HTTP Code
+
+
+
+        } //End of try 
+        catch (e) 
+        { session.send("Whoops, that didn't match! Try again."); }
+        session.endDialog();
+
+
+
+
+// End Find Subcategories
+
+
+
+
+    },
+    function (session, results) {
+        session.send("You chose '%s'", results.response ? 'yes' : 'no');
+    //    builder.Prompts.time(session, "Prompts.time()\n\nThe framework can recognize a range of times expressed as natural language. Enter a time like 'Monday at 7am' and I'll show you the JSON we return.");
+    }
+    
+]); //End of ‘/weather’ dialog waterfall 
+bot.beginDialogAction('businesses', '/businesses');   // <-- no 'matches' option means this can only be triggered by a button.
+
+
+// Create a dialog and bind it to a global action
+bot.dialog('/subcategories', [
+    function (session, args) {
+    //    session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
+         // new for loop test
+						  // new for loop test
+    var num = args.data;
+	console.log("name 0 is " + session.userData.bizArray[0].name); 
+    console.log("last number used " + num);
+    session.userData.count = parseInt(num)+5;
+    var bizAmount = session.userData.bizArray.length;
+    var howManyLeft = parseInt(bizAmount) - parseInt(num);
+     // new for loop test
+
+     if (howManyLeft < 5) {
+         nextFiveLabel = "Next " + howManyLeft + " >";
+     } else {
+         nextFiveLabel = "Next 5 >";
+     }
+						 var a;
+						 var cards = [];
+						 
+						 for (a = num; a < session.userData.count;) {					
+						
+						
+						    
+        					var card = new builder.HeroCard(session)
+									.title(""+ session.userData.bizArray[a].name +"")
+									.text("" + session.userData.bizArray[a].address + " in " + session.userData.bizArray[a].city + ", "+ session.userData.bizArray[a].state)
+//									.images([
+//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
+//        +session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"&zoom=14&size=400x300&sensor=false")
+//									])
+                                    .images([
+										 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"")
+									])
+									.buttons([
+										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id="+ session.userData.bizArray[a].id, "More Details"),
+										builder.CardAction.imBack(session, "select:102", "Track Purchase")
+									]);
+									cards.push(card);
+
+                            if (a == (parseInt(session.userData.count)-1)) {
+                            var card = new builder.HeroCard(session)
+									.title("Next 5 Businesses")
+								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
+									.images([
+										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
+									])
+
+                                    .buttons([
+										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
+                                        builder.CardAction.dialogAction(session, "search", "" + session.userData.count +"", "" + nextFiveLabel +"")
+								//		
+									]);
+									cards.push(card);
+
+                        
+							} // ends if 5 items have been shown
+                            a++;
+		 				 } // ends for loop
+
+                          session.send("We found the following " +  session.userData.bizArray.length +" businesses.  Showing " + a + " out of " +  session.userData.bizArray.length + ".");
+								
+								var msg = new builder.Message(session)
+									.textFormat(builder.TextFormat.xml)
+									.attachmentLayout(builder.AttachmentLayout.carousel)
+									.attachments(cards);
+								session.send(msg);
+
+
+    }
+]);
+bot.beginDialogAction('subcategories', '/subcategories'); // <-- no 'matches' option means this can only be triggered by a button.
+
+
+
+bot.dialog('/businesslist', [
+	
+	
+	
+	function (session, args)      //WeatherUnderground API 
+    {
+
+    //var subCatID = 41;	
+	var subCatID = args.data;
+	session.userData.subcatid = subCatID;
+		
+        try 
+        {           
+            
+// Begin HTTP Code
+
+var arrBiz = []; 
+session.userData.bizArray = arrBiz;
+console.log("The location is " + session.userData.location); 
+console.log("The Session Sub Cat ID is " + session.userData.subcatid); 
+console.log("The Subcatid is " + subCatID); 
+
+                http.get("http://www.blocally.com/json/botNearbyBusinessList.php?address="+ session.userData.location +"&sub_cat="+ session.userData.subcatid +"&radius=99", function (response) {
+			//http.get("http://www.blocally.com/json/nearbyBusinessesBySubCat3.php?address=" + session.userData.cityName +"&sub_cat=277&radius=99", function (response) {
+                    var d = '';
+					var i;
+                    response.on('data', function (chunk) { d += chunk; })
+                    response.on('end', function () {
+                        var e = JSON.parse(d);
+						for (i = 0; i < e.listings.length; i++) { 
+                        //var g = JSON.parse(f);
+						//for (h = 0; h < g.listings.length; h++) {  
+							console.log(i + 1 + ":" + e.listings[i].title); 
+                            console.log("This is a test "); 
+                        //    console.log("location is " + session.userData.location);   
+                        //    console.log("cityName is " + session.userData.cityName);
+							arrBiz.push({ 
+								"id": e.listings[i].id, 
+								"name": e.listings[i].title,    
+                                "address": e.listings[i].listing_address1,
+                                "city": e.listings[i].location_text_1,
+                                "state": e.listings[i].StateAbrev,
+                                "description": e.listings[i].description_short
+							});  
+						} // ends for loop
+						
+
+						// added new code		
+						 
+						 // new for loop test
+						 var x;
+						 var cards = [];
+						 
+						 for (x = 0; x < 5;) {					
+						
+					
+						    
+        					var card = new builder.HeroCard(session)
+									.title(""+ arrBiz[x].name +"")
+									.text("" + arrBiz[x].address +" " + arrBiz[x].city +" " + arrBiz[x].state +"")
+									.images([
+										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
+       +arrBiz[x].lat+","+arrBiz[x].lon+"&zoom=14&size=400x300&sensor=false")
+									])
+                                    .images([
+										 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+arrBiz[x].lat+","+arrBiz[x].lon+"")
+                                    //    builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C")
+									])
+									.buttons([
+										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id="+arrBiz[x].id, "More Details"),
+										builder.CardAction.imBack(session, "select:102", "Track Purchase")
+									]);
+									cards.push(card);
+
+                            if (x == 4) {
+                            var card = new builder.HeroCard(session)
+									.title("Next 5 Businesses")
+								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
+									.images([
+										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
+									])
+									.buttons([
+										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
+                                        builder.CardAction.dialogAction(session, "search", "5", "Next 5 >")
+								//		
+									]);
+									cards.push(card);
+
+                        
+							} // ends if 5 items have been shown
+                            x++;
+		 				 } // ends for loop
+                   
+
+                    
+								session.send("We found the following " + arrBiz.length +" businesses.  Showing " + x + " out of " + arrBiz.length + ".");
+								
+								var msg = new builder.Message(session)
+									.textFormat(builder.TextFormat.xml)
+									.attachmentLayout(builder.AttachmentLayout.carousel)
+									.attachments(cards);
+								session.send(msg);
+								
+						
+        
+	//	session.beginDialog('/menu');	
+                    
+								
+// end new code							
+                    }); // response on end code
+			
+                    
+                   
+        
+                }) // end http code
+
+// End HTTP Code
+
+
+
+        } //End of try 
+        catch (e) 
+        { session.send("Whoops, that didn't match! Try again."); }
+        session.endDialog();
+    } //End of WeatherUnderground API function
+	
+]);
+bot.beginDialogAction('businesslist', '/businesslist'); // <-- no 'matches' option means this can only be triggered by a button.
+
+
+// Create a dialog and bind it to a global action
+bot.dialog('/search', [
+    function (session, args) {
+    //    session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
+         // new for loop test
+						  // new for loop test
+    var num = args.data;
+	//console.log("name 0 is " + session.userData.bizArray[0].name); 
+    console.log("last number used " + num);
+    //session.userData.count = parseInt(num)+5;
+    var count = parseInt(num)+5;
+    var bizAmount = session.userData.bizArray.length;
+    var howManyLeft = parseInt(bizAmount) - parseInt(num);
+     // new for loop test
+
+     if (howManyLeft < 5) {
+         nextFiveLabel = "Next " + howManyLeft + " >";
+     } else {
+         nextFiveLabel = "Next 5 >";
+     }
+						 var a;
+						 var cards = [];
+						 
+						 for (a = num; a < count;) {					
+						
+						
+						    
+        					var card = new builder.HeroCard(session)
+									.title(""+ session.userData.bizArray[a].name +"")
+									.text("" + session.userData.bizArray[a].address + " in " + session.userData.bizArray[a].city + ", "+ session.userData.bizArray[a].state)
+//									.images([
+//										 builder.CardImage.create(session, "http://maps.googleapis.com/maps/api/staticmap?center="
+//        +session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"&zoom=14&size=400x300&sensor=false")
+//									])
+                                    .images([
+										 builder.CardImage.create(session, "https://maps.googleapis.com/maps/api/staticmap?center=&zoom=13&size=400x300&maptype=roadmap&markers=color:red%7Clabel:S%7C"+session.userData.bizArray[a].lat+","+session.userData.bizArray[a].lon+"")
+									])
+									.buttons([
+										builder.CardAction.openUrl(session, "http://m.blocally.com/businessDetails.php?id="+ session.userData.bizArray[a].id, "More Details"),
+										builder.CardAction.imBack(session, "select:102", "Track Purchase")
+									]);
+									cards.push(card);
+
+                            if (a == (parseInt(count)-1)) {
+                            var card = new builder.HeroCard(session)
+									.title("Next 5 Businesses")
+								//	.text("" + arr[a].address + " in " + arr[a].city + ", "+ arr[a].state)
+									.images([
+										 builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
+									])
+
+                                    .buttons([
+										//builder.CardAction.imBack(session, "select:102", "Next 5 >")
+                                        builder.CardAction.dialogAction(session, "search", howManyLeft, "" + nextFiveLabel +"")
+								//		
+									]);
+									cards.push(card);
+
+                        
+							} // ends if 5 items have been shown
+                            a++;
+		 				 } // ends for loop
+
+                          session.send("We found the following " +  session.userData.bizArray.length +" businesses.  Showing " + a + " out of " +  session.userData.bizArray.length + ".");
+								
+								var msg = new builder.Message(session)
+									.textFormat(builder.TextFormat.xml)
+									.attachmentLayout(builder.AttachmentLayout.carousel)
+									.attachments(cards);
+								session.send(msg);
+
+
+    }
+]);
+bot.beginDialogAction('search', '/search'); // <-- no 'matches' option means this can only be triggered by a button.
+
+server.get('/', restify.serveStatic({
+ directory: __dirname,
+ default: '/index.html'
+}));
+
+>>>>>>> 071e9e451029b74e607ccf65e58e332841f86f4d
